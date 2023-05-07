@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventBus
+metadata:
+  name: default
+  namespace: {{ .Release.Namespace }}
+spec:
+  jetstream:
+    version: latest # Do NOT use "latest" but a specific version in your real deployment
+    persistence: # optional
+      storageClassName: standard
+      accessMode: ReadWriteOnce
+      volumeSize: 10Gi
+    streamConfig: |             # see default values in argo-events-controller-config
+      maxAge: 24h
+    settings: |
+      max_file_store: 1GB       # see default values in argo-events-controller-config
+    startArgs:
