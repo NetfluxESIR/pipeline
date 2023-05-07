@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: minio
+  namespace: {{ .Release.Namespace }}
+spec:
+  minio:
+    video:
+      bucket:
+        name: video-pipeline
+      endpoint: {{ .Values.minio.url }}
+      events:
+        - s3:ObjectCreated:*
+      insecure: true
+      accessKey:
+        key: accesskey
+        name: artifacts-minio
+      secretKey:
+        key: secretkey
+        name: artifacts-minio

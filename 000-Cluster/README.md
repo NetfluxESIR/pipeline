@@ -1,9 +1,20 @@
-# 001-Cluster
+# 000-Cluster
 
-This folder contains the deployement of the cluster
+This folder contains to terraform code to create a kubernetes cluster using kind.
 
-## Values
+This cluster is used to deploy the other resources of the project.
 
-What's inside the `.tfvars` file :
+If you want to use an existing cluster, you can skip this step.
 
-- cluster_name <string> : The name of the cluster you'd like to deploy
+## Usage
+
+```bash
+terraform init
+terraform apply
+```
+
+## Input
+
+| Name          | Description             |  Type  | Default  | Required |
+|---------------|-------------------------|:------:|:--------:|:--------:|
+| cluster\_name | The name of the cluster | string | `"kind"` |    no    |

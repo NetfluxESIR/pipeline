@@ -1,2 +1,9 @@
 *.tfvars
 .terraform
+.idea
+*.tfstate
+*.tfstate.backup
+*.lock.hcl
+*.tfstate.lock.info
+kubeconfig
+kind-config
