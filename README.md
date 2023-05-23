@@ -26,3 +26,9 @@ You can use the Makefile to deploy the whole infrastructure.
 ```bash
 make deploy
 ```
+
+## TODO
+
+- [ ] Add observability (Monitoring, Logging, Tracing)
+- [ ] Add more variables to customize the deployment
+- [ ] Split, in each module, the resources in different files

@@ -7,10 +7,19 @@ data "terraform_remote_state" "service_state" {
 
 resource "aws_s3_bucket" "video" {
   bucket = "netflux-video"
-
   tags = {
     Name        = "video"
     Environment = "production"
+  }
+}
+
+resource "aws_s3_bucket_cors_configuration" "video-cors" {
+  bucket = aws_s3_bucket.video.id
+  cors_rule {
+    allowed_methods = ["GET", "PUT", "POST", "DELETE"]
+    allowed_origins = ["*"]
+    allowed_headers = ["*"]
+    max_age_seconds = 3000
   }
 }
 
