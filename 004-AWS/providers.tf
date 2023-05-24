@@ -7,12 +7,11 @@ terraform {
   }
 }
 
-# Configure the AWS Provider
 provider "aws" {
   region = "eu-west-3"
 }
 
 
 provider "kubernetes" {
-  config_path = "${path.module}/../000-Cluster/kubeconfig"
+  config_path = "${path.module}/../000-Cluster/kind-config"
 }

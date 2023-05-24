@@ -6,7 +6,8 @@ data "terraform_remote_state" "service_state" {
 }
 
 resource "aws_s3_bucket" "video" {
-  bucket = "netflux-video"
+  bucket        = "netflux-video"
+  force_destroy = true
   tags = {
     Name        = "video"
     Environment = "production"
@@ -24,12 +25,56 @@ resource "aws_s3_bucket_cors_configuration" "video-cors" {
 }
 
 resource "aws_s3_bucket" "video-processed" {
-  bucket = "netflux-video-processed"
-
+  bucket        = "netflux-video-processed"
+  force_destroy = true
   tags = {
     Name        = "video-processed"
     Environment = "production"
   }
+}
+
+resource "aws_s3_bucket_public_access_block" "video_processed_bucket_public_access_block" {
+  bucket                  = aws_s3_bucket.video-processed.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+  depends_on              = [aws_s3_bucket.video-processed, aws_s3_bucket_ownership_controls.video_processed_bucket_ownership_controls]
+}
+
+resource "aws_s3_bucket_ownership_controls" "video_processed_bucket_ownership_controls" {
+  bucket = aws_s3_bucket.video-processed.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
+  depends_on = [aws_s3_bucket.video-processed]
+}
+
+resource "aws_s3_bucket_acl" "video_processed_bucket_acl" {
+  bucket     = aws_s3_bucket.video-processed.id
+  acl        = "public-read"
+  depends_on = [aws_s3_bucket_public_access_block.video_processed_bucket_public_access_block]
+}
+
+resource "aws_s3_bucket_policy" "video_processed_bucket_policy" {
+  bucket = aws_s3_bucket.video-processed.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action = [
+          "s3:GetObject"
+        ]
+        Resource = [
+          "arn:aws:s3:::${aws_s3_bucket.video-processed.id}/*"
+        ]
+      }
+    ]
+  })
+  depends_on = [aws_s3_bucket_public_access_block.video_processed_bucket_public_access_block]
 }
 
 // Create a new User for the Video Processing Service
@@ -78,7 +123,7 @@ resource "aws_iam_policy" "video-processing" {
         ],
         "Resource" : [
           "arn:aws:s3:::${aws_s3_bucket.video.id}/*",
-          "arn:aws:s3:::${aws_s3_bucket.video-processed.id}/*"
+          "arn:aws:s3:::${aws_s3_bucket.video-processed.id}/*",
         ]
       }
     ]

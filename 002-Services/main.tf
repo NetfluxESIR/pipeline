@@ -68,3 +68,71 @@ resource "helm_release" "minio_video_tenant" {
       namespace        = "video-pipeline-minio"
   })]
 }
+
+// Create bucket as sometimes the minio operator doesn't create it
+resource "kubernetes_config_map" "create_bucket" {
+  metadata {
+    name      = "create-bucket"
+    namespace = "video-pipeline-minio"
+  }
+  data = {
+    "create-bucket.sh" = <<EOF
+#!/bin/sh
+until mc alias set video-pipeline http://minio.${helm_release.minio_video_tenant.namespace}.svc.cluster.local "${local.minio_access_key}" "${local.minio_secret_key}"
+do
+  echo "Waiting for Minio to be available"
+  sleep 1
+done
+mc mb --ignore-existing video-pipeline/video-pipeline
+mc mb --ignore-existing video-pipeline/video-pipeline-processed
+EOF
+  }
+  depends_on = [helm_release.minio_video_tenant]
+}
+
+resource "kubernetes_job_v1" "video_bucket_creation" {
+  timeouts {
+    create = "15m"
+  }
+  metadata {
+    name      = "video-bucket-creation"
+    namespace = "video-pipeline-minio"
+  }
+  spec {
+    ttl_seconds_after_finished = 10
+    template {
+      spec {
+        container {
+          name    = "mc"
+          image   = "minio/mc"
+          command = ["/bin/sh", "./scripts/create-bucket.sh"]
+          volume_mount {
+            name       = "scripts"
+            mount_path = "/scripts"
+          }
+          env {
+            name  = "MINIO_HOST"
+            value = "minio.${helm_release.minio_video_tenant.namespace}.svc.cluster.local"
+          }
+          env {
+            name  = "MINIO_ACCESS_KEY"
+            value = local.minio_access_key
+          }
+          env {
+            name  = "MINIO_SECRET_KEY"
+            value = local.minio_secret_key
+          }
+        }
+        volume {
+          name = "scripts"
+          config_map {
+            name         = "create-bucket"
+            default_mode = "0777"
+          }
+        }
+      }
+      metadata {}
+    }
+  }
+  depends_on = [kubernetes_config_map.create_bucket]
+}
