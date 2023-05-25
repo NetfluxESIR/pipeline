@@ -6,5 +6,5 @@ module "kind" {
 
 resource "local_file" "kubeconfig" {
   content  = module.kind.raw_kubeconfig
-  filename = "${path.module}/kubeconfig"
+  filename = "${path.module}/kind-config"
 }

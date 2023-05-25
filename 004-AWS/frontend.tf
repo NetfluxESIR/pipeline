@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "frontend_bucket" {
-  bucket        = "netflux-site"
+  bucket        = "netflux"
   force_destroy = true
   provisioner "local-exec" {
     command = "rm -rf site && mkdir site && cd site && git clone git@github.com:NetfluxESIR/frontend.git && cd frontend && npm install && BUCKET_REGION=${aws_s3_bucket.video-processed.bucket} BACKEND_URL=http://${aws_instance.backend_host.public_ip}/api/v1 BUCKET_NAME=${aws_s3_bucket.video-processed.bucket} npm run generate && cd .. && cd .."
