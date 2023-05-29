@@ -1,4 +1,0 @@
-minio:
-  url: minio
-  accessKey: accesskey
-  secretKey: secretkey

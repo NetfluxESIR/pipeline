@@ -1,0 +1,13 @@
+minio:
+  url: minio
+  accessKey: accesskey
+  secretKey: secretkey
+
+backend:
+  url: http://backend:8080
+  account:
+    email: email
+    password: password
+    role: role
+
+imagePullSecret: regcred

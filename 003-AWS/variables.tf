@@ -17,3 +17,7 @@ variable "admin_account_password" {
   sensitive   = true
 }
 
+variable "registry_server" {
+  description = "Registry server containing the container image"
+  default     = "ghcr.io"
+}

@@ -1,0 +1,310 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: minio-sensor
+  namespace: {{ .Release.Namespace }}
+spec:
+  dependencies:
+    - eventName: video
+      eventSourceName: minio
+      name: test-dep
+  loggingFields: null
+  template:
+    serviceAccountName: operate-workflow-sa
+  triggers:
+    - template:
+        k8s:
+          name: workflow-trigger
+          operation: create
+          parameters:
+            - dest: spec.arguments.parameters.1.value
+              src:
+                dataKey: notification.0.s3.object.key
+                dependencyName: test-dep
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: video-processing-
+              spec:
+                arguments:
+                  parameters:
+                    - name: bucket
+                      value: video-pipeline
+                    - name: key
+                      value: key
+                entrypoint: video-processing
+                imagePullSecrets:
+                  - name: {{ .Values.imagePullSecret }}
+                serviceAccountName: operate-workflow-sa
+                templates:
+                  - name: video-processing
+                    steps:
+                      - - name: extract-video-id
+                          template: extract-video-id
+                          arguments:
+                            parameters:
+                              - name: key
+                                value: '{{"{{"}}workflow.parameters.key{{"}}"}}'
+                      - - name: update-status-started
+                          template: update-status
+                          arguments:
+                            parameters:
+                              - name: videoId
+                                value: '{{"{{"}}steps.extract-video-id.outputs.result{{"}}"}}'
+                              - name: status
+                                value: 'STARTED'
+                      - - name: step-downsizing-started
+                          template: step-information
+                          arguments:
+                            parameters:
+                              - name: videoId
+                                value: '{{"{{"}}steps.extract-video-id.outputs.result{{"}}"}}'
+                              - name: currentStep
+                                value: 'DOWNSCALE'
+                              - name: currentStepStatus
+                                value: 'STARTED'
+                              - name: previousStep
+                                value: ''
+                              - name: previousStepLog
+                                value: ''
+                              - name: previousStepStatus
+                                value: ''
+                      - - name: downsizing
+                          template: downsizing
+                      - - name: step-downsizing-finished
+                          template: step-information
+                          arguments:
+                              parameters:
+                              - name: videoId
+                                value: '{{"{{"}}steps.extract-video-id.outputs.result{{"}}"}}'
+                              - name: currentStep
+                                value: 'LANG_DETECTION'
+                              - name: currentStepStatus
+                                value: 'STARTED'
+                              - name: previousStep
+                                value: 'DOWNSCALE'
+                              - name: previousStepLog
+                                value: '{{"{{"}}steps.downsizing.outputs.result{{"}}"}}'
+                              - name: previousStepStatus
+                                value: 'FINISHED'
+                      - - name: lang-identification
+                          template: lang-identification
+                          arguments:
+                            parameters:
+                              - name: taskType
+                                value: 'language_detection'
+                      - - name: step-lang-identification-finished
+                          template: step-information
+                          arguments:
+                            parameters:
+                              - name: videoId
+                                value: '{{"{{"}}steps.extract-video-id.outputs.result{{"}}"}}'
+                              - name: currentStep
+                                value: 'TRANSCRIPTION'
+                              - name: currentStepStatus
+                                value: 'STARTED'
+                              - name: previousStep
+                                value: 'LANG_DETECTION'
+                              - name: previousStepLog
+                                value: '{{"{{"}}steps.lang-identification.outputs.result{{"}}"}}'
+                              - name: previousStepStatus
+                                value: 'FINISHED'
+                      - - name: transcription
+                          template: lang-identification
+                          arguments:
+                            parameters:
+                              - name: taskType
+                                value: 'subtitle_generation'
+                      - - name: push-subtitles
+                          template: push-subtitles
+                          arguments:
+                            parameters:
+                              - name: videoId
+                                value: '{{"{{"}}steps.extract-video-id.outputs.result{{"}}"}}'
+                              - name: subtitles
+                                value: '{{"{{"}}steps.transcription.outputs.result{{"}}"}}'
+                      - - name: step-transcription-finished
+                          template: step-information
+                          arguments:
+                            parameters:
+                              - name: videoId
+                                value: '{{"{{"}}steps.extract-video-id.outputs.result{{"}}"}}'
+                              - name: currentStep
+                                value: 'NONE'
+                              - name: currentStepStatus
+                                value: 'FINISHED'
+                              - name: previousStep
+                                value: 'TRANSCRIPTION'
+                              - name: previousStepLog
+                                value: '{{"{{"}}steps.transcription.outputs.result{{"}}"}}'
+                              - name: previousStepStatus
+                                value: 'FINISHED'
+                      - - name: update-status-finalized
+                          template: update-status
+                          arguments:
+                            parameters:
+                              - name: videoId
+                                value: '{{"{{"}}steps.extract-video-id.outputs.result{{"}}"}}'
+                              - name: status
+                                value: 'FINISHED'
+                  - container:
+                      args:
+                        - '-i'
+                        - /tmp/video.mp4
+                        - '-vf'
+                        - scale=320:240
+                        - /tmp/reduced.mp4
+                      image: jrottenberg/ffmpeg:3-scratch
+                    inputs:
+                      artifacts:
+                        - name: video
+                          path: /tmp/video.mp4
+                          s3:
+                            accessKeySecret:
+                              key: accesskey
+                              name: artifacts-minio
+                            bucket: '{{"{{"}}workflow.parameters.bucket{{"}}"}}'
+                            endpoint: {{ .Values.minio.url }}
+                            insecure: true
+                            key: '{{"{{"}}workflow.parameters.key{{"}}"}}'
+                            secretKeySecret:
+                              key: secretkey
+                              name: artifacts-minio
+                    name: downsizing
+                    outputs:
+                      artifacts:
+                        - name: video
+                          path: /tmp/reduced.mp4
+                          archive:
+                            none: {}
+                          s3:
+                            accessKeySecret:
+                              key: accesskey
+                              name: artifacts-minio
+                            bucket: '{{"{{"}}workflow.parameters.bucket{{"}}"}}-processed'
+                            endpoint: {{ .Values.minio.url }}
+                            insecure: true
+                            key: '{{"{{"}}workflow.parameters.key{{"}}"}}'
+                            secretKeySecret:
+                              key: secretkey
+                              name: artifacts-minio
+                  - name: update-status
+                    inputs:
+                      parameters:
+                        - name: videoId
+                        - name: status
+                    containers:
+                      image: ghcr.io/netfluxesir/backend-client:latest
+                      args:
+                        - status
+                        - -e={{ .Values.backend.account.email }}
+                        - -p={{ .Values.backend.account.password }}
+                        - -r={{ .Values.backend.account.role }}
+                        - -U={{ .Values.backend.url }}
+                        - -id
+                        - '{{"{{"}}inputs.parameters.videoId{{"}}"}}'
+                        - -s
+                        - '{{"{{"}}inputs.parameters.status{{"}}"}}'
+                  - name: step-information
+                    inputs:
+                      parameters:
+                        - name: videoId
+                        - name: currentStep
+                        - name: currentStepStatus
+                        - name: previousStep
+                        - name: previousStepLog
+                        - name: previousStepStatus
+                    container:
+                      image: ghcr.io/netfluxesir/backend-client:latest
+                      args:
+                        - step
+                        - -e={{ .Values.backend.account.email }}
+                        - -p={{ .Values.backend.account.password }}
+                        - -r={{ .Values.backend.account.role }}
+                        - -U={{ .Values.backend.url }}
+                        - -id
+                        - '{{"{{"}}inputs.parameters.videoId{{"}}"}}'
+                        - -c
+                        - '{{"{{"}}inputs.parameters.currentStep{{"}}"}}'
+                        - -S
+                        - '{{"{{"}}inputs.parameters.currentStepStatus{{"}}"}}'
+                        - -P
+                        - '{{"{{"}}inputs.parameters.previousStep{{"}}"}}'
+                        - -l
+                        - '{{"{{"}}inputs.parameters.previousStepLog{{"}}"}}'
+                        - -s
+                        - '{{"{{"}}inputs.parameters.previousStepStatus{{"}}"}}'
+                  - name: extract-video-id
+                    inputs:
+                      parameters:
+                        - name: key
+                    script:
+                      image: python:alpine3.6
+                      command:
+                        - python
+                      source: |
+                        import json
+                        import sys
+                        data = json.load(sys.stdin)
+                        print(data['key'].split('.')[0])
+                  - name: lang-identification
+                    inputs:
+                      parameters:
+                        - name: taskType
+                      artifacts:
+                        - name: video
+                          path: /tmp/video.mp4
+                          s3:
+                            accessKeySecret:
+                              key: accesskey
+                              name: artifacts-minio
+                            bucket: '{{"{{"}}workflow.parameters.bucket{{"}}"}}'
+                            endpoint: {{ .Values.minio.url }}
+                            insecure: true
+                            key: '{{"{{"}}workflow.parameters.key{{"}}"}}'
+                            secretKeySecret:
+                              key: secretkey
+                              name: artifacts-minio
+                    container:
+                      image: ghcr.io/netfluxesir/lang-indent:latest
+                        args:
+                          - -i
+                          - /tmp/video.mp4
+                          - -t
+                          - '{{"{{"}}inputs.parameters.taskType{{"}}"}}'
+                          - -o
+                          - '/tmp'
+                  - name: push-subtitles
+                    inputs:
+                      parameters:
+                        - name: subtitles
+                        - name: videoId
+                    script:
+                      image: debian:9.4
+                      command: [bash]
+                      source: |
+                        #!/bin/bash
+                        set -e
+                        echo "${{"{{"}}inputs.parameters.subtitles{{"}}"}}" > /tmp/subtitles.vtt
+                    outputs:
+                      artifacts:
+                        - name: subtitles
+                          path: /tmp/subtitles.vtt
+                          archive:
+                            none: { }
+                          s3:
+                            accessKeySecret:
+                              key: accesskey
+                              name: artifacts-minio
+                            bucket: '{{"{{"}}workflow.parameters.bucket{{"}}"}}-processed'
+                            endpoint: {{ .Values.minio.url }}
+                            insecure: true
+                            key: '{{"{{"}}inputs.parameters.videoId{{"}}"}}.vtt'
+                            secretKeySecret:
+                              key: secretkey
+                              name: artifacts-minio
+
+        name: video-processing
+

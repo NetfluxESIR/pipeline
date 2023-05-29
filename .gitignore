@@ -7,3 +7,4 @@
 *.tfstate.lock.info
 kubeconfig
 kind-config
+site
