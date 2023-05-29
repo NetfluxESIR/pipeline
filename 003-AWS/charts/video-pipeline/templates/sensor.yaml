@@ -195,15 +195,20 @@ spec:
                       parameters:
                         - name: videoId
                         - name: status
-                    containers:
+                    container:
                       image: ghcr.io/netfluxesir/backend-client:latest
+                      command: ["/app"]
                       args:
                         - status
-                        - -e={{ .Values.backend.account.email }}
-                        - -p={{ .Values.backend.account.password }}
-                        - -r={{ .Values.backend.account.role }}
-                        - -U={{ .Values.backend.url }}
-                        - -id
+                        - -e
+                        - {{ .Values.backend.account.email }}
+                        - -p
+                        - {{ .Values.backend.account.password }}
+                        - -r
+                        - {{ .Values.backend.account.role }}
+                        - -U
+                        - {{ .Values.backend.url }}
+                        - -i
                         - '{{"{{"}}inputs.parameters.videoId{{"}}"}}'
                         - -s
                         - '{{"{{"}}inputs.parameters.status{{"}}"}}'
@@ -218,13 +223,18 @@ spec:
                         - name: previousStepStatus
                     container:
                       image: ghcr.io/netfluxesir/backend-client:latest
+                      command: ["/app"]
                       args:
                         - step
-                        - -e={{ .Values.backend.account.email }}
-                        - -p={{ .Values.backend.account.password }}
-                        - -r={{ .Values.backend.account.role }}
-                        - -U={{ .Values.backend.url }}
-                        - -id
+                        - -e
+                        - {{ .Values.backend.account.email }}
+                        - -p
+                        - {{ .Values.backend.account.password }}
+                        - -r
+                        - {{ .Values.backend.account.role }}
+                        - -U
+                        - {{ .Values.backend.url }}
+                        - -i
                         - '{{"{{"}}inputs.parameters.videoId{{"}}"}}'
                         - -c
                         - '{{"{{"}}inputs.parameters.currentStep{{"}}"}}'
@@ -245,10 +255,8 @@ spec:
                       command:
                         - python
                       source: |
-                        import json
-                        import sys
-                        data = json.load(sys.stdin)
-                        print(data['key'].split('.')[0])
+                        key = '{{"{{"}}inputs.parameters.key{{"}}"}}'
+                        print(key.split('.')[0])
                   - name: lang-identification
                     inputs:
                       parameters:
@@ -269,13 +277,14 @@ spec:
                               name: artifacts-minio
                     container:
                       image: ghcr.io/netfluxesir/lang-indent:latest
-                        args:
-                          - -i
-                          - /tmp/video.mp4
-                          - -t
-                          - '{{"{{"}}inputs.parameters.taskType{{"}}"}}'
-                          - -o
-                          - '/tmp'
+                      command: ["python3", "app.py"]
+                      args:
+                        - -i
+                        - /tmp/video.mp4
+                        - -t
+                        - '{{"{{"}}inputs.parameters.taskType{{"}}"}}'
+                        - -o
+                        - '/tmp'
                   - name: push-subtitles
                     inputs:
                       parameters:
