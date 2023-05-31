@@ -157,6 +157,7 @@ spec:
                         - scale=320:240
                         - /tmp/reduced.mp4
                       image: jrottenberg/ffmpeg:3-scratch
+                      command: ["/bin/ffmpeg"]
                     inputs:
                       artifacts:
                         - name: video
@@ -296,7 +297,7 @@ spec:
                       source: |
                         #!/bin/bash
                         set -e
-                        echo "${{"{{"}}inputs.parameters.subtitles{{"}}"}}" > /tmp/subtitles.vtt
+                        echo "{{"{{"}}inputs.parameters.subtitles{{"}}"}}" > /tmp/subtitles.vtt
                     outputs:
                       artifacts:
                         - name: subtitles

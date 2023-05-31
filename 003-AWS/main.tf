@@ -24,6 +24,16 @@ resource "aws_s3_bucket_cors_configuration" "video-cors" {
   }
 }
 
+resource "aws_s3_bucket_cors_configuration" "video-processed-cors" {
+  bucket = aws_s3_bucket.video-processed.id
+  cors_rule {
+    allowed_methods = ["GET", "PUT", "POST", "DELETE", "HEAD"]
+    allowed_origins = ["*"]
+    allowed_headers = ["*"]
+    max_age_seconds = 3000
+  }
+}
+
 resource "aws_s3_bucket" "video-processed" {
   bucket        = "netflux-video-processed"
   force_destroy = true
