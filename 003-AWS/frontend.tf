@@ -11,6 +11,9 @@ resource "aws_s3_bucket_website_configuration" "frontend_bucket_website" {
   index_document {
     suffix = "index.html"
   }
+  error_document {
+    key = "index.html"
+  }
   depends_on = [aws_s3_object.frontend_bucket_object]
 }
 
