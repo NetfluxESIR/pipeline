@@ -218,7 +218,7 @@ resource "kubernetes_config_map" "video_bucket_replication_s3_mirror_script" {
   data = {
     "replicate.sh" = <<EOF
 #!/bin/sh
-until mc alias set s3 https://s3.amazonaws.com ${aws_iam_access_key.video-processing.id} ${aws_iam_access_key.video-processing.secret}
+until mc alias set s3 https://s3.${aws_s3_bucket.video-processed.region}.amazonaws.com ${aws_iam_access_key.video-processing.id} ${aws_iam_access_key.video-processing.secret}
 do
   echo "Waiting for S3 to be available"
   sleep 1

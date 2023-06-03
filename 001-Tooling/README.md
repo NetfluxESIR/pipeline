@@ -1,9 +1,15 @@
 # 001-Cluster
 
-This folder contains the deployement of the cluster
+This folder contains the deployment of the tooling inside the cluster.
 
-## Values
+It contains the following resources :
+- prometheus-operator
+- grafana
+- cert-manager
 
-What's inside the `.tfvars` file :
+## Usage
 
-- cluster_name <string> : The name of the cluster you'd like to deploy
+```bash
+terraform init
+terraform apply
+```

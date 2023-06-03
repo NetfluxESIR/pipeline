@@ -35,8 +35,6 @@ spec:
                     - name: key
                       value: key
                 entrypoint: video-processing
-                imagePullSecrets:
-                  - name: {{ .Values.imagePullSecret }}
                 serviceAccountName: operate-workflow-sa
                 templates:
                   - name: video-processing

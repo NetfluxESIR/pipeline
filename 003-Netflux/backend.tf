@@ -52,8 +52,6 @@ resource "aws_instance" "backend_host" {
   security_groups             = [aws_security_group.video_pipeline_sg.name]
   key_name                    = aws_key_pair.video-pipeline.key_name
   user_data = templatefile("${path.module}/templates/backend_user_data.sh", {
-    github_token           = var.github_token
-    github_username        = var.github_username
     admin_account_email    = var.admin_account_email
     admin_account_password = var.admin_account_password
     aws_access_key         = aws_iam_access_key.video-processing.id

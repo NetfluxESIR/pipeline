@@ -2,7 +2,7 @@ resource "aws_s3_bucket" "frontend_bucket" {
   bucket        = "netflux"
   force_destroy = true
   provisioner "local-exec" {
-    command = "rm -rf site && mkdir site && cd site && git clone git@github.com:NetfluxESIR/frontend.git && cd frontend && npm install && BACKEND_URL=http://${aws_instance.backend_host.public_ip}/api/v1 BUCKET_NAME=${aws_s3_bucket.video-processed.bucket} BUCKET_REGION=${aws_s3_bucket.video-processed.region} npm run generate && cd .. && cd .."
+    command = "rm -rf site && mkdir site && cd site && git clone https://github.com/NetfluxESIR/frontend.git && cd frontend && npm install && BACKEND_URL=http://${aws_instance.backend_host.public_ip}/api/v1 BUCKET_NAME=${aws_s3_bucket.video-processed.bucket} BUCKET_REGION=${aws_s3_bucket.video-processed.region} npm run generate && cd .. && cd .. && sleep 1"
   }
 }
 
@@ -23,7 +23,7 @@ resource "aws_s3_object" "frontend_bucket_object" {
   bucket       = aws_s3_bucket.frontend_bucket.id
   key          = each.value
   content_type = endswith(each.value, ".html") ? "text/html" : endswith(each.value, ".js") ? "application/javascript" : endswith(each.value, ".css") ? "text/css" : "binary/octet-stream"
-  depends_on   = [aws_s3_bucket_acl.frontend_bucket_acl]
+  depends_on   = [aws_s3_bucket_acl.frontend_bucket_acl, aws_s3_bucket.frontend_bucket]
 }
 
 resource "aws_s3_bucket_public_access_block" "frontend_bucket_public_access_block" {

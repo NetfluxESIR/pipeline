@@ -1,4 +1,4 @@
-VAR_FILE ?= "terraform.tfvars"
+VAR_FILE ?= $(shell pwd)/variables.tfvars
 CURRENT_DIR = $(shell pwd)
 
 000:
@@ -11,13 +11,13 @@ CURRENT_DIR = $(shell pwd)
 	cd $(CURRENT_DIR)/002-Services && terraform init && terraform apply -auto-approve -var-file=$(VAR_FILE)
 
 003: 002
-	cd $(CURRENT_DIR)/003-AWS && terraform init && terraform apply -auto-approve -var-file=$(VAR_FILE)
+	cd $(CURRENT_DIR)/003-Netflux && terraform init && terraform apply -auto-approve -var-file=$(VAR_FILE)
 
 deploy: 003
 	echo "Stack deployed"
 
 destroy:
-	cd $(CURRENT_DIR)/003-AWS && terraform destroy -auto-approve -var-file=$(VAR_FILE)
+	cd $(CURRENT_DIR)/003-Netflux && terraform destroy -auto-approve -var-file=$(VAR_FILE)
 	cd $(CURRENT_DIR)/002-Services && terraform destroy -auto-approve -var-file=$(VAR_FILE)
 	cd $(CURRENT_DIR)/001-Tooling && terraform destroy -auto-approve -var-file=$(VAR_FILE)
 	cd $(CURRENT_DIR)/000-Cluster && terraform destroy -auto-approve -var-file=$(VAR_FILE)
