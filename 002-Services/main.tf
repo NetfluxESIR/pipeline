@@ -16,15 +16,7 @@ resource "helm_release" "argo_workflow" {
     name  = "controller.serviceMonitor.enabled"
     value = "true"
   }
-  depends_on = [kubernetes_namespace.video_pipeline_ns]
 }
-
-resource "kubernetes_namespace" "video_pipeline_ns" {
-  metadata {
-    name = "video-pipeline"
-  }
-}
-
 
 resource "helm_release" "argo_events" {
   chart            = "argo-events"

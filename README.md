@@ -13,9 +13,9 @@ Please make sure you have the following tools installed on your machine :
 - [make](https://www.gnu.org/software/make/)
 - [helm](https://helm.sh/docs/intro/install/)
 - [An AWS account with sufficient permissions](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/) in order to create a bucket, EC2 instances and an user with the required permissions to interact with the S3 bucket
-- [Docker](https://docs.docker.com/get-docker/) with a rootless configuration (see [this page](https://docs.docker.com/engine/security/rootless/) for more information)
+- [Docker](https://docs.docker.com/get-docker/) manageable by a non-root user (see [this page](https://docs.docker.com/engine/install/linux-postinstall/) for more information) and running.
 - [Git](https://git-scm.com/downloads)
-- [nodejs](https://nodejs.org/en/download/) and npm (installed with nodejs normally)
+- [nodejs](https://nodejs.org/en/download/) and npm (installed with nodejs normally) - Node Version >= 18.16.0
 
 ## Values available
 
@@ -49,13 +49,14 @@ registry_server = "ghcr.io"
 > 
 > See [this page](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html) for more information.
 
-To deploy the cluster, you need to run the following command :
+To deploy the cluster, you need to run the following command with your information :
 
 ```bash
 git clone https://github.com/NetfluxESIR/pipeline.git
+cd pipeline
 export AWS_ACCESS_KEY_ID=your_access_key_id
 export AWS_SECRET_ACCESS_KEY=your_secret_access_key
-make deploy VAR_FILE=/path/to/your/vars.tfvars
+make deploy VAR_FILE=/absolute/path/to/your/vars.tfvars
 ```
 
 Then you can access the frontend using the frontend url outputted by terraform.
@@ -63,5 +64,42 @@ Then you can access the frontend using the frontend url outputted by terraform.
 ## Destroy
 
 ```bash
-make destroy VAR_FILE=/path/to/your/vars.tfvars
+make destroy VAR_FILE=/absolute/path/to/your/vars.tfvars
+```
+
+## Troubleshooting
+
+Many problems can occur during the deployment of the cluster. Here are some solutions to the most common problems.
+
+### Timeout when deploying the cluster
+
+It happens sometimes that the cluster deployment fails because of a timeout. If it happens, you can try to deploy the cluster again using the following command :
+
+```bash
+make deploy VAR_FILE=/absolute/path/to/your/vars.tfvars
+```
+
+It will continue the deployment where it stopped.
+
+### Too many open files
+
+It happens sometimes that containers can't start because of a "too many open files" error. If it happens, you can try to deploy the cluster again using the following command :
+
+```bash
+ulimit -n 65536
+sudo sysctl fs.inotify.max_user_instances=1280
+sudo sysctl fs.inotify.max_user_watches=655360
+make destroy VAR_FILE=/absolute/path/to/your/vars.tfvars
+make deploy VAR_FILE=/absolute/path/to/your/vars.tfvars
+```
+
+See [this page](https://github.com/kubeflow/manifests/issues/2087) for more information.
+
+### Site is not pushed to S3
+
+It happens sometimes that the site is not pushed to S3. If it happens, you can try to deploy the cluster again using the following command :
+
+```bash
+cd 003-Netflux
+terraform apply -var-file=/absolute/path/to/your/vars.tfvars -auto-approve
 ```

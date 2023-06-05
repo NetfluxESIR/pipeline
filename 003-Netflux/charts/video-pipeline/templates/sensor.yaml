@@ -349,7 +349,7 @@ spec:
                              name: artifacts-minio
                     container:
                       image: ghcr.io/netfluxesir/animal-detection:latest
-                      command: [ "python3", "app.py" ]
+                      command: [ "poetry", "run", "python", "app.py" ]
                       args:
                         - -i
                         - /tmp/video.mp4
