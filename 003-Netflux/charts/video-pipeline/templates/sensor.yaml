@@ -130,13 +130,31 @@ spec:
                               - name: videoId
                                 value: '{{"{{"}}steps.extract-video-id.outputs.result{{"}}"}}'
                               - name: currentStep
-                                value: 'NONE'
+                                value: 'ANIMAL_DETECTION'
                               - name: currentStepStatus
-                                value: 'FINISHED'
+                                value: 'STARTED'
                               - name: previousStep
                                 value: 'TRANSCRIPTION'
                               - name: previousStepLog
                                 value: '{{"{{"}}steps.transcription.outputs.result{{"}}"}}'
+                              - name: previousStepStatus
+                                value: 'FINISHED'
+                      - - name: animal-detection
+                          template: animal-detection
+                      - - name: step-animal-detection-finished
+                          template: step-information
+                          arguments:
+                            parameters:
+                              - name: videoId
+                                value: '{{"{{"}}steps.extract-video-id.outputs.result{{"}}"}}'
+                              - name: currentStep
+                                value: 'NONE'
+                              - name: currentStepStatus
+                                value: 'FINISHED'
+                              - name: previousStep
+                                value: 'ANIMAL_DETECTION'
+                              - name: previousStepLog
+                                value: '{{"{{"}}steps.animal-detection.outputs.result{{"}}"}}'
                               - name: previousStepStatus
                                 value: 'FINISHED'
                       - - name: update-status-finalized
@@ -313,6 +331,27 @@ spec:
                             secretKeySecret:
                               key: secretkey
                               name: artifacts-minio
-
+                  - name: animal-detection
+                    inputs:
+                      artifacts:
+                        - name: video
+                          path: /tmp/video.mp4
+                          s3:
+                           accessKeySecret:
+                             key: accesskey
+                             name: artifacts-minio
+                           bucket: '{{"{{"}}workflow.parameters.bucket{{"}}"}}'
+                           endpoint: {{ .Values.minio.url }}
+                           insecure: true
+                           key: '{{"{{"}}workflow.parameters.key{{"}}"}}'
+                           secretKeySecret:
+                             key: secretkey
+                             name: artifacts-minio
+                    container:
+                      image: ghcr.io/netfluxesir/animal-detection:latest
+                      command: [ "python3", "app.py" ]
+                      args:
+                        - -i
+                        - /tmp/video.mp4
         name: video-processing
 
